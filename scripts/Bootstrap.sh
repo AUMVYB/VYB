@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ======================================
-# Neura Bootstrap System (v3.0)
+# VYB Bootstrap System (v1.0)
 # --------------------------------------
 # Automates microservice scaffolding,
 # Helm & ArgoCD config generation,
@@ -15,7 +15,7 @@ ARGO_APPS="$ROOT_DIR/infrastructure/argo/applications"
 COMMON_SCHEMA="$ROOT_DIR/core/schema/global_schema.json"
 PLACEHOLDERS="$ROOT_DIR/core/schema/placeholders"
 
-echo "🚀 Bootstrapping Neura from registry: $REGISTRY"
+echo "🚀 Bootstrapping VYB from registry: $REGISTRY"
 
 # Check prerequisites
 for cmd in yq jq envsubst kubectl helm; do
@@ -63,7 +63,7 @@ EOF
   cat > "$CHART_PATH/values.yaml" <<EOF
 replicaCount: 2
 image:
-  repository: neura/${SERVICE}
+  repository: vyb/${SERVICE}
   tag: latest
 service:
   port: ${PORT}
@@ -81,9 +81,9 @@ metadata:
   name: ${SERVICE}
   namespace: argocd
 spec:
-  project: neura
+  project: vyb
   source:
-    repoURL: 'https://github.com/neura/social'
+    repoURL: 'https://github.com/vyb/social'
     path: infrastructure/helm/charts/${SERVICE}
     targetRevision: main
     helm:
@@ -113,7 +113,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build ${SERVICE}
-        run: docker build -t neura/${SERVICE}:latest ${PATH_DIR}
+        run: docker build -t vyb/${SERVICE}:latest ${PATH_DIR}
       - name: Test ${SERVICE}
         run: make test || echo "No tests"
 EOF
@@ -128,9 +128,10 @@ find "$ROOT_DIR/services" -type d -name "api" -exec cp "$PLACEHOLDERS/en.json" {
 # Register Grafana dashboards per namespace
 for NS in core ai ads mod localization infra analytics gamification public-voice dev data bonus; do
   echo "📊 Registering Grafana dashboard for $NS..."
+  mkdir -p "$ROOT_DIR/infrastructure/monitoring/grafana/dashboards"
   cat > "$ROOT_DIR/infrastructure/monitoring/grafana/dashboards/${NS}.json" <<EOF
 {
-  "title": "Neura - ${NS} Overview",
+  "title": "VYB - ${NS} Overview",
   "panels": [
     { "type": "graph", "title": "Request Latency", "targets": [] },
     { "type": "stat", "title": "Error Rate", "targets": [] }
@@ -139,5 +140,5 @@ for NS in core ai ads mod localization infra analytics gamification public-voice
 EOF
 done
 
-echo "✅ Bootstrap complete! 102 services initialized."
+echo "✅ Bootstrap complete! 102 services initialized for VYB."
 echo "Next: run ./scripts/deploy-all.sh to start in Kubernetes."
