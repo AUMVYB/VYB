@@ -1,1 +1,948 @@
+# service-registry.yaml
+version: "1.0"
+generated_at: "2025-10-23T00:00:00Z"
+services:
+  # 1-10 Core MVP
+  - name: user-service
+    path: services/core-mvp/user-service
+    team: "Core Platform"
+    language: go
+    port: 8081
+    helmChart: user-service
+    namespace: core
+    depends_on: ["postgres-user", "kafka", "redis"]
+    description: "User identity, profile and public metadata"
+  - name: auth-service
+    path: services/core-mvp/auth-service
+    team: "Core Platform"
+    language: rust
+    port: 8082
+    helmChart: auth-service
+    namespace: core
+    depends_on: ["user-service", "postgres-auth", "redis", "vault"]
+    description: "Authentication, sessions, JWT issuance"
+  - name: post-service
+    path: services/core-mvp/post-service
+    team: "Core Platform"
+    language: go
+    port: 8083
+    helmChart: post-service
+    namespace: core
+    depends_on: ["user-service", "media-service", "kafka", "cassandra"]
+    description: "Create/edit/delete posts (metadata)"
+  - name: feed-service
+    path: services/core-mvp/feed-service
+    team: "Core Platform"
+    language: go
+    port: 8084
+    helmChart: feed-service
+    namespace: core
+    depends_on: ["post-service", "engagement-service", "ai-ranker-service", "kafka", "cassandra"]
+    description: "Assemble per-user ForYou and Now feeds"
+  - name: engagement-service
+    path: services/core-mvp/engagement-service
+    team: "Engagement"
+    language: go
+    port: 8085
+    helmChart: engagement-service
+    namespace: core
+    depends_on: ["post-service", "kafka", "redis", "postgres-engagement"]
+    description: "Echoes/likes, comments, shares counters and events"
+  - name: media-service
+    path: services/core-mvp/media-service
+    team: "Media"
+    language: rust
+    port: 8086
+    helmChart: media-service
+    namespace: core
+    depends_on: ["s3", "cdn", "kafka", "transcoder-workers"]
+    description: "Media upload, processing, variants and signed URLs"
+  - name: notification-service
+    path: services/core-mvp/notification-service
+    team: "Engagement"
+    language: node
+    port: 8087
+    helmChart: notification-service
+    namespace: core
+    depends_on: ["kafka", "fcm", "apns", "email-provider"]
+    description: "Push, in-app, and email notifications"
+  - name: relationship-service
+    path: services/core-mvp/relationship-service
+    team: "Engagement"
+    language: java
+    port: 8088
+    helmChart: relationship-service
+    namespace: core
+    depends_on: ["neo4j", "kafka", "redis"]
+    description: "Follow/unfollow, block, mute, social graph"
+  - name: poll-service
+    path: services/core-mvp/poll-service
+    team: "Product"
+    language: go
+    port: 8089
+    helmChart: poll-service
+    namespace: core
+    depends_on: ["post-service", "kafka", "postgres-poll"]
+    description: "Public polls & community voting"
+  - name: search-service
+    path: services/core-mvp/search-service
+    team: "Core Platform"
+    language: python
+    port: 8090
+    helmChart: search-service
+    namespace: core
+    depends_on: ["elasticsearch", "indexing-service", "kafka"]
+    description: "Full-text and semantic search"
+
+  # 11-22 AI & Personalization
+  - name: ai-ranker-service
+    path: services/ai-cluster/ai-ranker-service
+    team: "AI"
+    language: python
+    port: 8091
+    helmChart: ai-ranker-service
+    namespace: ai
+    depends_on: ["feature-store-service", "model-registry-service", "kafka"]
+    description: "Real-time ranking model inference"
+  - name: recommend-service
+    path: services/ai-cluster/recommend-service
+    team: "AI"
+    language: python
+    port: 8092
+    helmChart: recommend-service
+    namespace: ai
+    depends_on: ["ai-ranker-service", "feature-store-service", "kafka"]
+    description: "User/topic/content recommendations"
+  - name: feature-store-service
+    path: services/ai-cluster/feature-store-service
+    team: "Data"
+    language: go
+    port: 8093
+    helmChart: feature-store-service
+    namespace: ai
+    depends_on: ["kafka", "redis", "postgres-featurestore"]
+    description: "Centralized ML features (online/offline)"
+  - name: ai-feedback-service
+    path: services/ai-cluster/ai-feedback-service
+    team: "AI"
+    language: python
+    port: 8094
+    helmChart: ai-feedback-service
+    namespace: ai
+    depends_on: ["kafka", "storage"]
+    description: "Collects labeled feedback from moderation & engagements"
+  - name: model-registry-service
+    path: services/ai-cluster/model-registry-service
+    team: "AI"
+    language: python
+    port: 8095
+    helmChart: model-registry-service
+    namespace: ai
+    depends_on: ["mlflow", "object-storage"]
+    description: "Model versions, deployment control & experiments"
+  - name: vision-ai-service
+    path: services/ai-cluster/vision-ai-service
+    team: "AI"
+    language: python
+    port: 8096
+    helmChart: vision-ai-service
+    namespace: ai
+    depends_on: ["gpu-cluster", "kafka"]
+    description: "Image/video safety & classification models"
+  - name: nlp-moderation-service
+    path: services/ai-cluster/nlp-moderation-service
+    team: "AI"
+    language: python
+    port: 8097
+    helmChart: nlp-moderation-service
+    namespace: ai
+    depends_on: ["model-registry-service", "kafka"]
+    description: "NLP-based toxicity and rule detection"
+  - name: companion-ai-service
+    path: services/ai-cluster/companion-ai-service
+    team: "AI"
+    language: python
+    port: 8098
+    helmChart: companion-ai-service
+    namespace: ai
+    depends_on: ["model-registry-service", "feature-store-service"]
+    description: "AI assistant for content creation & suggestions"
+  - name: semantic-search-service
+    path: services/ai-cluster/semantic-search-service
+    team: "AI"
+    language: python
+    port: 8099
+    helmChart: semantic-search-service
+    namespace: ai
+    depends_on: ["vector-store", "kafka"]
+    description: "Vector search for semantic queries"
+  - name: ai-behavioral-service
+    path: services/ai-cluster/ai-behavioral-service
+    team: "AI"
+    language: python
+    port: 8100
+    helmChart: ai-behavioral-service
+    namespace: ai
+    depends_on: ["kafka", "feature-store-service"]
+    description: "Detects suspicious behavior patterns & bot detection"
+  - name: topic-intelligence-service
+    path: services/ai-cluster/topic-intelligence-service
+    team: "AI"
+    language: python
+    port: 8101
+    helmChart: topic-intelligence-service
+    namespace: ai
+    depends_on: ["kafka", "semantic-search-service"]
+    description: "Discovers trending clusters and topic relationships"
+  - name: auto-translate-service
+    path: services/ai-cluster/auto-translate-service
+    team: "Localization"
+    language: python
+    port: 8102
+    helmChart: auto-translate-service
+    namespace: ai
+    depends_on: ["nlp-moderation-service", "translation-cache-service"]
+    description: "Real-time translation for multi-language feeds"
+
+  # 23-33 Monetization & Economy
+  - name: wallet-service
+    path: services/monetization/wallet-service
+    team: "Monetization"
+    language: go
+    port: 8201
+    helmChart: wallet-service
+    namespace: ads
+    depends_on: ["postgres-wallet", "kafka", "payment-gateway-service"]
+    description: "User and creator wallet ledger"
+  - name: coin-service
+    path: services/monetization/coin-service
+    team: "Monetization"
+    language: go
+    port: 8202
+    helmChart: coin-service
+    namespace: ads
+    depends_on: ["wallet-service", "kafka"]
+    description: "Neura Coins virtual currency"
+  - name: payout-service
+    path: services/monetization/payout-service
+    team: "Finance"
+    language: python
+    port: 8203
+    helmChart: payout-service
+    namespace: ads
+    depends_on: ["wallet-service", "tax-service", "payment-gateway-service"]
+    description: "Scheduled payouts and reconciliation"
+  - name: ad-service
+    path: services/monetization/ad-service
+    team: "Ads"
+    language: java
+    port: 8204
+    helmChart: ad-service
+    namespace: ads
+    depends_on: ["kafka", "postgres-ads", "ai-ranker-service"]
+    description: "Ad inventory, bidding and delivery"
+  - name: campaign-service
+    path: services/monetization/campaign-service
+    team: "Ads"
+    language: node
+    port: 8205
+    helmChart: campaign-service
+    namespace: ads
+    depends_on: ["ad-service", "brandcollab-service", "kafka"]
+    description: "Campaign lifecycle & targeting"
+  - name: boost-service
+    path: services/monetization/boost-service
+    team: "Monetization"
+    language: go
+    port: 8206
+    helmChart: boost-service
+    namespace: ads
+    depends_on: ["wallet-service", "ad-service", "kafka"]
+    description: "Paid post promotion & boosts"
+  - name: sponsor-trend-service
+    path: services/monetization/sponsor-trend-service
+    team: "Ads"
+    language: go
+    port: 8207
+    helmChart: sponsor-trend-service
+    namespace: ads
+    depends_on: ["trend-analytics-service", "ad-service"]
+    description: "Manage sponsored trending slots"
+  - name: subscription-service
+    path: services/monetization/subscription-service
+    team: "Monetization"
+    language: python
+    port: 8208
+    helmChart: subscription-service
+    namespace: ads
+    depends_on: ["billing-service", "wallet-service"]
+    description: "Neura+ premium subscriptions"
+  - name: brandcollab-service
+    path: services/monetization/brandcollab-service
+    team: "Monetization"
+    language: node
+    port: 8209
+    helmChart: brandcollab-service
+    namespace: ads
+    depends_on: ["recommend-service", "campaign-service"]
+    description: "AI matchmakers connecting brands & creators"
+  - name: creator-analytics-service
+    path: services/monetization/creator-analytics-service
+    team: "Data"
+    language: go
+    port: 8210
+    helmChart: creator-analytics-service
+    namespace: ads
+    depends_on: ["analytics-service", "wallet-service"]
+    description: "Creator dashboards & real-time payout metrics"
+  - name: payment-gateway-service
+    path: services/monetization/payment-gateway-service
+    team: "Finance"
+    language: go
+    port: 8211
+    helmChart: payment-gateway-service
+    namespace: ads
+    depends_on: ["stripe", "razorpay", "upi-connector"]
+    description: "Third-party payment integrations (Stripe, UPI etc.)"
+
+  # 34-43 Moderation & Governance
+  - name: report-service
+    path: services/moderation-governance/report-service
+    team: "Trust & Safety"
+    language: go
+    port: 8301
+    helmChart: report-service
+    namespace: mod
+    depends_on: ["kafka", "moderation-queue-service", "audit-service"]
+    description: "User reporting intake and case creation"
+  - name: moderation-queue-service
+    path: services/moderation-governance/moderation-queue-service
+    team: "Trust & Safety"
+    language: node
+    port: 8302
+    helmChart: moderation-queue-service
+    namespace: mod
+    depends_on: ["report-service", "ai-triage-service", "audit-service"]
+    description: "Human review workflow, SLA routing"
+  - name: policy-service
+    path: services/moderation-governance/policy-service
+    team: "Trust & Safety"
+    language: python
+    port: 8303
+    helmChart: policy-service
+    namespace: mod
+    depends_on: ["transparency-service", "audit-service"]
+    description: "Rules engine and policy versioning"
+  - name: compliance-service
+    path: services/moderation-governance/compliance-service
+    team: "Legal"
+    language: python
+    port: 8304
+    helmChart: compliance-service
+    namespace: mod
+    depends_on: ["audit-service", "data-retention-service"]
+    description: "GDPR/DSR handling and legal requests"
+  - name: audit-service
+    path: services/moderation-governance/audit-service
+    team: "Trust & Safety"
+    language: go
+    port: 8305
+    helmChart: audit-service
+    namespace: mod
+    depends_on: ["postgres-audit", "qldb"]
+    description: "Immutable logs & tamper-evident records"
+  - name: transparency-service
+    path: services/moderation-governance/transparency-service
+    team: "Trust & Safety"
+    language: node
+    port: 8306
+    helmChart: transparency-service
+    namespace: mod
+    depends_on: ["audit-service", "report-service"]
+    description: "Public moderation & payout dashboards"
+  - name: risk-engine-service
+    path: services/moderation-governance/risk-engine-service
+    team: "Security"
+    language: python
+    port: 8307
+    helmChart: risk-engine-service
+    namespace: mod
+    depends_on: ["ai-fraud-service", "kafka"]
+    description: "Fraud & abuse scoring engine"
+  - name: shadowban-monitor-service
+    path: services/moderation-governance/shadowban-monitor-service
+    team: "Trust & Safety"
+    language: go
+    port: 8308
+    helmChart: shadowban-monitor-service
+    namespace: mod
+    depends_on: ["feed-service", "analytics-service"]
+    description: "Visibility diagnostics for creators"
+  - name: auth-guard-service
+    path: services/moderation-governance/auth-guard-service
+    team: "Security"
+    language: go
+    port: 8309
+    helmChart: auth-guard-service
+    namespace: mod
+    depends_on: ["auth-service", "rate-limit-store"]
+    description: "Rate limiting, IP reputation, CAPTCHA orchestration"
+  - name: fairness-ai-service
+    path: services/moderation-governance/fairness-ai-service
+    team: "AI Ethics"
+    language: python
+    port: 8310
+    helmChart: fairness-ai-service
+    namespace: mod
+    depends_on: ["model-registry-service", "audit-service"]
+    description: "Bias detection and fairness audits"
+
+  # 44-47 Localization & Accessibility
+  - name: locale-service
+    path: services/localization/locale-service
+    team: "Localization"
+    language: go
+    port: 8401
+    helmChart: locale-service
+    namespace: localization
+    depends_on: ["translation-cache-service", "kafka"]
+    description: "User locale preferences and weighting"
+  - name: translation-cache-service
+    path: services/localization/translation-cache-service
+    team: "Localization"
+    language: node
+    port: 8402
+    helmChart: translation-cache-service
+    namespace: localization
+    depends_on: ["redis", "auto-translate-service"]
+    description: "Cache translations to reduce cost/latency"
+  - name: a11y-service
+    path: services/localization/a11y-service
+    team: "Accessibility"
+    language: python
+    port: 8403
+    helmChart: a11y-service
+    namespace: localization
+    depends_on: ["media-service", "nlp-moderation-service"]
+    description: "Accessibility metadata, captions, screen reader hints"
+  - name: festival-theming-service
+    path: services/localization/festival-theming-service
+    team: "Product"
+    language: node
+    port: 8404
+    helmChart: festival-theming-service
+    namespace: localization
+    depends_on: ["locale-service", "cdn-orchestrator-service"]
+    description: "Context-aware theming for local festivals & events"
+
+  # 48-58 Infra & Ops
+  - name: orchestration-service
+    path: services/infra-ops/orchestration-service
+    team: "SRE"
+    language: go
+    port: 8501
+    helmChart: orchestration-service
+    namespace: infra
+    depends_on: ["kubernetes-api", "argo"]
+    description: "Task scheduling and pipelines (batch & cron)"
+  - name: gateway-config-service
+    path: services/infra-ops/gateway-config-service
+    team: "SRE"
+    language: node
+    port: 8502
+    helmChart: gateway-config-service
+    namespace: infra
+    depends_on: ["api-gateway-service", "vault"]
+    description: "Centralized gateway routing & policy manager"
+  - name: secrets-service
+    path: services/infra-ops/secrets-service
+    team: "SRE"
+    language: go
+    port: 8503
+    helmChart: secrets-service
+    namespace: infra
+    depends_on: ["vault", "kubernetes"]
+    description: "Secrets distribution and rotation helper"
+  - name: backup-service
+    path: services/infra-ops/backup-service
+    team: "SRE"
+    language: python
+    port: 8504
+    helmChart: backup-service
+    namespace: infra
+    depends_on: ["s3", "rds", "cassandra"]
+    description: "Automated snapshot & DR orchestration"
+  - name: deployment-service
+    path: services/infra-ops/deployment-service
+    team: "SRE"
+    language: go
+    port: 8505
+    helmChart: deployment-service
+    namespace: infra
+    depends_on: ["argo", "image-registry"]
+    description: "Deployment orchestration hooks and rollout guard"
+  - name: status-service
+    path: services/infra-ops/status-service
+    team: "SRE"
+    language: node
+    port: 8506
+    helmChart: status-service
+    namespace: infra
+    depends_on: ["monitoring"]
+    description: "Public status & incident updates"
+  - name: cdn-orchestrator-service
+    path: services/infra-ops/cdn-orchestrator-service
+    team: "Edge"
+    language: go
+    port: 8507
+    helmChart: cdn-orchestrator-service
+    namespace: infra
+    depends_on: ["cdn", "media-service"]
+    description: "CDN invalidation & regional routing"
+  - name: load-balancer-service
+    path: services/infra-ops/load-balancer-service
+    team: "SRE"
+    language: go
+    port: 8508
+    helmChart: load-balancer-service
+    namespace: infra
+    depends_on: ["edge-proxy-service", "kubernetes"]
+    description: "Adaptive traffic routing and failover"
+  - name: cache-invalidation-service
+    path: services/infra-ops/cache-invalidation-service
+    team: "SRE"
+    language: go
+    port: 8509
+    helmChart: cache-invalidation-service
+    namespace: infra
+    depends_on: ["redis", "cdn-orchestrator-service"]
+    description: "Smart cache sync across regions"
+  - name: infra-monitor-service
+    path: services/infra-ops/infra-monitor-service
+    team: "SRE"
+    language: go
+    port: 8510
+    helmChart: infra-monitor-service
+    namespace: infra
+    depends_on: ["prometheus", "loki"]
+    description: "SLA/cost/health telemetry"
+  - name: edge-proxy-service
+    path: services/infra-ops/edge-proxy-service
+    team: "Edge"
+    language: node
+    port: 8511
+    helmChart: edge-proxy-service
+    namespace: infra
+    depends_on: ["cdn", "waf"]
+    description: "Edge TLS termination, compression, geo-routing"
+
+  # 59-67 Analytics & Experimentation
+  - name: analytics-service
+    path: services/analytics/analytics-service
+    team: "Data"
+    language: go
+    port: 8601
+    helmChart: analytics-service
+    namespace: analytics
+    depends_on: ["kafka", "clickhouse", "data-lake-service"]
+    description: "Stream metrics ingestion and enrichment"
+  - name: telemetry-service
+    path: services/analytics/telemetry-service
+    team: "SRE"
+    language: go
+    port: 8602
+    helmChart: telemetry-service
+    namespace: analytics
+    depends_on: ["jaeger", "prometheus", "loki"]
+    description: "Traces, logs and metrics pipeline"
+  - name: bi-service
+    path: services/analytics/bi-service
+    team: "Business Intelligence"
+    language: python
+    port: 8603
+    helmChart: bi-service
+    namespace: analytics
+    depends_on: ["data-lake-service", "snowflake"]
+    description: "Business intelligence query and dashboards"
+  - name: insight-service
+    path: services/analytics/insight-service
+    team: "Data"
+    language: go
+    port: 8604
+    helmChart: insight-service
+    namespace: analytics
+    depends_on: ["analytics-service", "creator-analytics-service"]
+    description: "Creator & campaign insights"
+  - name: experiment-service
+    path: services/analytics/experiment-service
+    team: "Product"
+    language: go
+    port: 8605
+    helmChart: experiment-service
+    namespace: analytics
+    depends_on: ["gateway-config-service", "analytics-service"]
+    description: "A/B test management and rollout"
+  - name: report-export-service
+    path: services/analytics/report-export-service
+    team: "Data"
+    language: python
+    port: 8606
+    helmChart: report-export-service
+    namespace: analytics
+    depends_on: ["bi-service", "s3"]
+    description: "CSV / PDF exports for finance & legal"
+  - name: data-quality-service
+    path: services/analytics/data-quality-service
+    team: "Data"
+    language: python
+    port: 8607
+    helmChart: data-quality-service
+    namespace: analytics
+    depends_on: ["analytics-service", "data-lake-service"]
+    description: "Pipeline validation and anomaly detection"
+  - name: trend-analytics-service
+    path: services/analytics/trend-analytics-service
+    team: "Data"
+    language: go
+    port: 8608
+    helmChart: trend-analytics-service
+    namespace: analytics
+    depends_on: ["topic-intelligence-service", "analytics-service"]
+    description: "Global trend heatmaps and region breakdowns"
+  - name: realtime-analytics-service
+    path: services/analytics/realtime-analytics-service
+    team: "Data"
+    language: go
+    port: 8609
+    helmChart: realtime-analytics-service
+    namespace: analytics
+    depends_on: ["kafka", "clickhouse"]
+    description: "Low-latency dashboards for ops"
+
+  # 68-73 Gamification
+  - name: xp-engine-service
+    path: services/gamification/xp-engine-service
+    team: "Product"
+    language: go
+    port: 8701
+    helmChart: xp-engine-service
+    namespace: gamification
+    depends_on: ["engagement-service", "kafka"]
+    description: "XP calculation and leveling"
+  - name: rewards-service
+    path: services/gamification/rewards-service
+    team: "Product"
+    language: node
+    port: 8702
+    helmChart: rewards-service
+    namespace: gamification
+    depends_on: ["xp-engine-service", "wallet-service"]
+    description: "Challenges, badges and seasonal rewards"
+  - name: leaderboard-service
+    path: services/gamification/leaderboard-service
+    team: "Product"
+    language: go
+    port: 8703
+    helmChart: leaderboard-service
+    namespace: gamification
+    depends_on: ["xp-engine-service", "redis"]
+    description: "Regional and global leaderboards"
+  - name: loyalty-service
+    path: services/gamification/loyalty-service
+    team: "Product"
+    language: go
+    port: 8704
+    helmChart: loyalty-service
+    namespace: gamification
+    depends_on: ["wallet-service", "subscription-service"]
+    description: "Long-term engagement perks"
+  - name: referral-service
+    path: services/gamification/referral-service
+    team: "Growth"
+    language: node
+    port: 8705
+    helmChart: referral-service
+    namespace: gamification
+    depends_on: ["wallet-service", "analytics-service"]
+    description: "Referral program & rewards"
+  - name: user-achievements-service
+    path: services/gamification/user-achievements-service
+    team: "Product"
+    language: go
+    port: 8706
+    helmChart: user-achievements-service
+    namespace: gamification
+    depends_on: ["xp-engine-service", "rewards-service"]
+    description: "Track and expose user milestones"
+
+  # 74-78 Public Voice & Civic
+  - name: opinion-pulse-service
+    path: services/public-voice/opinion-pulse-service
+    team: "Public Voice"
+    language: go
+    port: 8801
+    helmChart: opinion-pulse-service
+    namespace: public-voice
+    depends_on: ["poll-service", "analytics-service"]
+    description: "Real-time public polls and sentiment aggregation"
+  - name: public-panel-service
+    path: services/public-voice/public-panel-service
+    team: "Public Voice"
+    language: node
+    port: 8802
+    helmChart: public-panel-service
+    namespace: public-voice
+    depends_on: ["opinion-pulse-service", "auth-service"]
+    description: "Crowd-voting panels and moderated debates"
+  - name: civic-issue-service
+    path: services/public-voice/civic-issue-service
+    team: "Public Voice"
+    language: go
+    port: 8803
+    helmChart: civic-issue-service
+    namespace: public-voice
+    depends_on: ["verification-service", "analytics-service"]
+    description: "Community-reported civic issues & verification"
+  - name: social-good-service
+    path: services/public-voice/social-good-service
+    team: "Public Voice"
+    language: node
+    port: 8804
+    helmChart: social-good-service
+    namespace: public-voice
+    depends_on: ["payment-gateway-service", "campaign-service"]
+    description: "NGO integrations and social cause features"
+  - name: policy-feedback-service
+    path: services/public-voice/policy-feedback-service
+    team: "Public Voice"
+    language: python
+    port: 8805
+    helmChart: policy-feedback-service
+    namespace: public-voice
+    depends_on: ["transparency-service", "compliance-service"]
+    description: "Structured feedback bridging citizens and policy-makers"
+
+  # 79-86 Developer & Support Tools
+  - name: developer-platform-service
+    path: services/dev-support/developer-platform-service
+    team: "Developer Platform"
+    language: node
+    port: 8901
+    helmChart: developer-platform-service
+    namespace: dev
+    depends_on: ["api-gateway-service", "auth-service"]
+    description: "Public developer API portal & SDK management"
+  - name: support-ticket-service
+    path: services/dev-support/support-ticket-service
+    team: "Support"
+    language: node
+    port: 8902
+    helmChart: support-ticket-service
+    namespace: dev
+    depends_on: ["internal-auth-service", "bi-service"]
+    description: "Helpdesk & ticketing integration"
+  - name: incident-service
+    path: services/dev-support/incident-service
+    team: "SRE"
+    language: node
+    port: 8903
+    helmChart: incident-service
+    namespace: dev
+    depends_on: ["status-service", "pagerduty"]
+    description: "Tracks incidents and on-call workflows"
+  - name: internal-auth-service
+    path: services/dev-support/internal-auth-service
+    team: "Security"
+    language: node
+    port: 8904
+    helmChart: internal-auth-service
+    namespace: dev
+    depends_on: ["auth-service", "vault"]
+    description: "Admin SSO and staff authentication"
+  - name: permission-service
+    path: services/dev-support/permission-service
+    team: "Security"
+    language: go
+    port: 8905
+    helmChart: permission-service
+    namespace: dev
+    depends_on: ["internal-auth-service", "audit-service"]
+    description: "Fine-grained RBAC and ABAC"
+  - name: documentation-service
+    path: services/dev-support/documentation-service
+    team: "Developer Platform"
+    language: node
+    port: 8906
+    helmChart: documentation-service
+    namespace: dev
+    depends_on: ["git", "ci-cd"]
+    description: "Dynamic API docs, changelogs, and SDKs"
+  - name: config-sync-service
+    path: services/dev-support/config-sync-service
+    team: "SRE"
+    language: go
+    port: 8907
+    helmChart: config-sync-service
+    namespace: dev
+    depends_on: ["secrets-service", "gitops"]
+    description: "Distributed configuration synchronization"
+  - name: log-aggregator-service
+    path: services/dev-support/log-aggregator-service
+    team: "SRE"
+    language: go
+    port: 8908
+    helmChart: log-aggregator-service
+    namespace: dev
+    depends_on: ["loki", "elasticsearch"]
+    description: "Centralized log collection & processing"
+
+  # 87-94 Data & Indexing
+  - name: archive-service
+    path: services/data/archive-service
+    team: "Data"
+    language: go
+    port: 9001
+    helmChart: archive-service
+    namespace: data
+    depends_on: ["s3", "data-retention-service"]
+    description: "Cold storage for deleted or legally held data"
+  - name: indexing-service
+    path: services/data/indexing-service
+    team: "Data"
+    language: go
+    port: 9002
+    helmChart: indexing-service
+    namespace: data
+    depends_on: ["kafka", "elasticsearch"]
+    description: "Real-time indexing pipeline for posts and profiles"
+  - name: file-metadata-service
+    path: services/data/file-metadata-service
+    team: "Media"
+    language: go
+    port: 9003
+    helmChart: file-metadata-service
+    namespace: data
+    depends_on: ["media-service", "postgres-filemeta"]
+    description: "File lineage, checksums, and metadata"
+  - name: data-retention-service
+    path: services/data/data-retention-service
+    team: "Legal"
+    language: python
+    port: 9004
+    helmChart: data-retention-service
+    namespace: data
+    depends_on: ["archive-service", "compliance-service"]
+    description: "Automated retention and deletion rules"
+  - name: data-migration-service
+    path: services/data/data-migration-service
+    team: "Data"
+    language: go
+    port: 9005
+    helmChart: data-migration-service
+    namespace: data
+    depends_on: ["postgres", "cassandra"]
+    description: "Schema migration pipelines & blue/green DB upgrades"
+  - name: event-replay-service
+    path: services/data/event-replay-service
+    team: "Data"
+    language: go
+    port: 9006
+    helmChart: event-replay-service
+    namespace: data
+    depends_on: ["kafka", "data-lake-service"]
+    description: "Rebuild read models from event streams"
+  - name: data-lake-service
+    path: services/data/data-lake-service
+    team: "Data"
+    language: python
+    port: 9007
+    helmChart: data-lake-service
+    namespace: data
+    depends_on: ["s3", "bigquery"]
+    description: "Centralized warehouse access & ETL orchestration"
+  - name: content-graph-service
+    path: services/data/content-graph-service
+    team: "Data"
+    language: go
+    port: 9008
+    helmChart: content-graph-service
+    namespace: data
+    depends_on: ["neo4j", "kafka"]
+    description: "Graph relationships between users, posts, and topics"
+
+  # 95-102 Bonus UX & Innovation
+  - name: adaptive-ui-service
+    path: services/bonus/adaptive-ui-service
+    team: "Product"
+    language: node
+    port: 9101
+    helmChart: adaptive-ui-service
+    namespace: bonus
+    depends_on: ["festival-theming-service", "user-service"]
+    description: "Context-aware UI behavior and theme rules"
+  - name: draft-recovery-service
+    path: services/bonus/draft-recovery-service
+    team: "Product"
+    language: node
+    port: 9102
+    helmChart: draft-recovery-service
+    namespace: bonus
+    depends_on: ["user-service", "s3"]
+    description: "Cloud-synced draft autosave and recovery"
+  - name: theme-engine-service
+    path: services/bonus/theme-engine-service
+    team: "Product"
+    language: node
+    port: 9103
+    helmChart: theme-engine-service
+    namespace: bonus
+    depends_on: ["cdn-orchestrator-service", "festival-theming-service"]
+    description: "Manage user themes & downloadable theme packs"
+  - name: persona-service
+    path: services/bonus/persona-service
+    team: "AI"
+    language: python
+    port: 9104
+    helmChart: persona-service
+    namespace: bonus
+    depends_on: ["companion-ai-service", "feature-store-service"]
+    description: "AI-driven profile insights and suggestions"
+  - name: smart-summary-service
+    path: services/bonus/smart-summary-service
+    team: "AI"
+    language: python
+    port: 9105
+    helmChart: smart-summary-service
+    namespace: bonus
+    depends_on: ["nlp-moderation-service", "ai-ranker-service"]
+    description: "Auto-summarize long threads and posts"
+  - name: context-engine-service
+    path: services/bonus/context-engine-service
+    team: "AI"
+    language: python
+    port: 9106
+    helmChart: context-engine-service
+    namespace: bonus
+    depends_on: ["semantic-search-service", "topic-intelligence-service"]
+    description: "Determine post tone, intent & context signals"
+  - name: voice-to-text-service
+    path: services/bonus/voice-to-text-service
+    team: "Media"
+    language: python
+    port: 9107
+    helmChart: voice-to-text-service
+    namespace: bonus
+    depends_on: ["media-service", "nlp-moderation-service"]
+    description: "Transcribe audio posts to text"
+  - name: link-preview-service
+    path: services/bonus/link-preview-service
+    team: "Core Platform"
+    language: go
+    port: 9108
+    helmChart: link-preview-service
+    namespace: bonus
+    depends_on: ["url-scraper", "cache"]
+    description: "Extract link metadata and generate previews"
+
+# End of registry
 
